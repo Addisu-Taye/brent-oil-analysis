@@ -11,6 +11,7 @@ def load_brent_prices(file_path='data/BrentOilPrices.csv'):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Data file not found: {file_path}")
 
+
     # Read without header, assuming the first two columns are date and price
     df = pd.read_csv(file_path, header=None, names=['DateRaw', 'Price'])
     
