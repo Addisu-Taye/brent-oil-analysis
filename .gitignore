@@ -1,0 +1,122 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.orig
+*.rej
+.*.swp
+*.swo
+*.pyc
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+.mypy_cache/
+.pyre/
+.pytype/
+
+# ===========================
+# Virtual Environments
+# ===========================
+venv/
+env/
+ENV/
+.venv/
+venv.bak/
+env.bak/
+
+# ===========================
+# Environment Variables
+# ===========================
+.env
+.env.*
+!.env.example  # Keep template, exclude others
+
+# ===========================
+# Jupyter Notebooks
+# ===========================
+.ipynb_checkpoints/
+
+# ===========================
+# Data and Reports
+# ===========================
+/data/*.csv
+!/data/BrentOilPrices.csv  # Whitelist
+/reports/*.{png,jpg,jpeg,pdf,html}
+
+# ===========================
+# OS Files
+# ===========================
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ===========================
+# Editors/IDEs
+# ===========================
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm/IntelliJ
+.idea/
+*.iml
+
+# Vim/Emacs
+*~
+.swp
+.swo
+\#*\#
+.\#*
+
+# ===========================
+# Docker
+# ===========================
+*.tar
+*.tar.gz
+*.img
+.docker/
+
+# ===========================
+# Databases and Logs
+# ===========================
+*.sqlite*
+*.log
+logs/
+
+# ===========================
+# Streamlit/Flask
+# ===========================
+.streamlit/
+sessions/
+cache/
