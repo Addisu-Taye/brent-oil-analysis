@@ -1,4 +1,13 @@
 # src/load_data.py
+"""
+Task ID:        Task-1
+Created by:     Addisu Taye
+Date Created:   30-JUL-2025
+Purpose:        Load and parse the Brent oil prices dataset, ensuring the Date column is correctly formatted as datetime.
+Key Features:   - Handles multiple date formats in raw data
+               - Cleans and sorts data chronologically
+               - Returns a clean pandas DataFrame ready for analysis
+"""
 
 import pandas as pd
 import os
