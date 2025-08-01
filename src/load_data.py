@@ -45,7 +45,6 @@ def load_brent_prices(file_path='data/BrentOilPrices.csv'):
     
     return df[['Date', 'Price']]
 
-
 def load_events(file_path="data/key_oil_events.csv"):
     """
     Loads key geopolitical and economic events.
