@@ -161,6 +161,7 @@ def main():
     os.makedirs("reports", exist_ok=True)
 
     try:
+        
         df = load_brent_prices()
         events_df = load_events()
     except FileNotFoundError as e:
