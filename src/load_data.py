@@ -65,5 +65,4 @@ def load_events(file_path="data/key_oil_events.csv"):
         print(f"⚠️ Warning: 'Date' column not found in {file_path}.")
         return pd.DataFrame(columns=['Event', 'Date', 'Description'])
         
-    
-    return events
+        return events

@@ -14,12 +14,12 @@ def load_events(file_path="events/key_oil_events.csv"):
     """
     Loads key geopolitical and economic events related to oil markets.
     
-    
+
     Parameters:
         file_path (str): Path to the events CSV file
     
     Returns:
-        pd.DataFrame: Events with columns ['Event', 'Date', 'Description']
+            pd.DataFrame: Events with columns ['Event', 'Date', 'Description']
     """
     events = pd.read_csv(file_path)
     events['Date'] = pd.to_datetime(events['Date'])

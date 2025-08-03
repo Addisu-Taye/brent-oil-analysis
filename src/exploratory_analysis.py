@@ -177,7 +177,7 @@ def main():
     plot_price_with_events(df, events_df)
     plot_potential_change_points(df)
 
-    print("\n✅ Exploratory Analysis Complete. Check the 'reports/' folder for visualizations.")
+    print("\n✅ Exploratory Analysis Complete.Check the 'reports/' folder for visualizations.")
 
 
 if __name__ == "__main__":
