@@ -1,55 +1,69 @@
 # backend/app.py
 """
 Flask Backend API for Brent Oil Price Dashboard
-Serves price data, events, and change point analysis results.
+Serves cleaned data, events, and model results to React frontend.
 """
 
 from flask import Flask, jsonify, send_from_directory
 import pandas as pd
 import os
-import json
-from flask_cors import CORS
+import csv
 
 app = Flask(__name__, static_folder='../frontend/dist')
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app, resources={
-  r"/api/*": {
-    "origins": ["http://localhost:3000", "http://127.0.0.1:3000"]
-  }
-})
-CORS(app)  # Allow all origins during dev
-app = Flask(__name__, static_folder='../frontend/build')
 
 # Paths
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(ROOT_DIR, 'backend', 'data', 'BrentOilPrices.csv')
-EVENTS_PATH = os.path.join(ROOT_DIR, 'backend', 'data', 'key_oil_events.csv')
+DATA_PATH = os.path.join(ROOT_DIR, 'data', 'BrentOilPrices_clean.csv')
+EVENTS_PATH = os.path.join(ROOT_DIR, 'events', 'key_oil_events.csv')
+ANALYSIS_2005_PATH = os.path.join(ROOT_DIR, 'analysis_summary.csv')
+ANALYSIS_2020_PATH = os.path.join(ROOT_DIR, 'analysis_summary_2020.csv')
 
 
 def load_brent_prices():
-    df = pd.read_csv(DATA_PATH, header=None, names=['DateRaw', 'Price'])
-    df['DateRaw'] = df['DateRaw'].astype(str).str.strip().str.strip('"')
-    
-    def parse_date(date_str):
-        try:
-            if '-' in date_str and len(date_str.split('-')[-1]) == 2:
-                return pd.to_datetime(date_str, format='%d-%b-%y')
-            else:
-                return pd.to_datetime(date_str, format='%b %d, %Y')
-        except:
-            return pd.NaT
-    df['Date'] = df['DateRaw'].apply(parse_date)
-    df = df.dropna(subset=['Date']).sort_values('Date')
-    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+    """Fix and load Brent oil prices with mixed date formats."""
+    if not os.path.exists(DATA_PATH):
+        with open(os.path.join(ROOT_DIR, 'BrentOilPrices.csv'), 'r') as f:
+            content = f.read().replace('\n', '').replace('\r', '')
+        import re
+        pattern = r'(?:\"([A-Za-z]{3} \d{1,2}, \d{4})\"|(\d{1,2}-[A-Za-z]{3}-\d{2})),([0-9]+\.[0-9]+)'
+        matches = re.findall(pattern, content)
+        records = [{'Date': m[0] if m[0] else m[1], 'Price': float(m[2])} for m in matches]
+        df = pd.DataFrame(records)
+        df['Date'] = pd.to_datetime(df['Date'])
+        df.sort_values('Date', inplace=True)
+        df.to_csv(DATA_PATH, index=False)
+    else:
+        df = pd.read_csv(DATA_PATH, parse_dates=['Date'])
     return df[['Date', 'Price']].to_dict(orient='records')
 
 
 def load_events():
-    events = pd.read_csv(EVENTS_PATH)
-    events['Date'] = pd.to_datetime(events['Date']).dt.strftime('%Y-%m-%d')
-    return events.to_dict(orient='records')
+    """Load key events from CSV."""
+    if not os.path.exists(EVENTS_PATH):
+        # Create default events
+        events = [
+            ("Iraq Invades Kuwait", "1990-08-02", "Triggers Gulf War; prices spike from $20 to $46"),
+            ("OPEC+ Agreement", "2020-04-12", "Unprecedented 10M bpd cut to stabilize prices"),
+            ("Russia Invades Ukraine", "2022-02-24", "Triggers energy crisis and sanctions"),
+            ("US-China Trade War", "2018-03-08", "Tariffs raise concerns over global demand"),
+            ("Global Financial Crisis", "2008-09-15", "Lehman collapse leads to demand crash"),
+        ]
+        df = pd.DataFrame(events, columns=['Event', 'Date', 'Description'])
+        df.to_csv(EVENTS_PATH, index=False)
+    df = pd.read_csv(EVENTS_PATH)
+    df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
+    return df.to_dict(orient='records')
+
+
+def load_analysis_summary(file_path):
+    """Load analysis summary safely."""
+    try:
+        with open(file_path, mode='r') as f:
+            reader = csv.DictReader(f)
+            return next(reader)
+    except Exception as e:
+        print(f"Error loading {file_path}: {e}")
+        return {}
 
 
 # --- API Endpoints ---
@@ -63,31 +77,28 @@ def get_events():
 
 @app.route('/api/change_points')
 def get_change_points():
-    # Simulated output from Bayesian model
+    summary_2005 = load_analysis_summary(ANALYSIS_2005_PATH)
+    summary_2020 = load_analysis_summary(ANALYSIS_2020_PATH)
     return jsonify([
         {
-            "date": "2020-04-21",
-            "pre_mean": 21.45,
-            "post_mean": 75.59,
-            "impact_percent": 252.1,
-            "event": "OPEC+ Production Cut Agreement",
-            "description": "Unprecedented 10M bpd cut to stabilize prices after pandemic crash"
-        },
-        {
-            "date": "2022-02-24",
-            "pre_mean": 92.3,
-            "post_mean": 118.9,
-            "impact_percent": 28.8,
-            "event": "Russia Invades Ukraine",
-            "description": "Energy crisis triggered by sanctions and supply fears"
-        },
-        {
-            "date": "2005-02-25",
-            "pre_mean": 21.4,
-            "post_mean": 75.6,
-            "impact_percent": 253.3,
-            "event": "Global Demand Surge",
+            "date": summary_2005.get("Change Point Date", "").split()[0],
+            "pre_mean": float(summary_2005.get("Pre-Change Mean", 0)),
+            "post_mean": float(summary_2005.get("Post-Change Mean", 0)),
+            "impact_percent": round(
+                (float(summary_2005.get("Post-Change Mean", 0)) - float(summary_2005.get("Pre-Change Mean", 0)))
+                / float(summary_2005.get("Pre-Change Mean", 1)) * 100, 1),
+            "event": "Global Demand Surge (2005)",
             "description": "Rising demand from China and India drives structural price shift"
+        },
+        {
+            "date": summary_2020.get("Change Point Date", "").split()[0],
+            "pre_mean": float(summary_2020.get("Pre-Change Mean", 0)),
+            "post_mean": float(summary_2020.get("Post-Change Mean", 0)),
+            "impact_percent": round(
+                (float(summary_2020.get("Post-Change Mean", 0)) - float(summary_2020.get("Pre-Change Mean", 0)))
+                / float(summary_2020.get("Pre-Change Mean", 1)) * 100, 1),
+            "event": "OPEC+ Production Cut (2020)",
+            "description": "Historic 10M bpd cut stabilizes prices after pandemic crash"
         }
     ])
 
@@ -96,25 +107,24 @@ def get_indicators():
     prices = pd.DataFrame(load_brent_prices())
     prices['Price'] = pd.to_numeric(prices['Price'], errors='coerce')
     latest_price = prices.iloc[-1]['Price']
-    volatility = prices['Price'].pct_change().std() * 100 * (252**0.5)  # Annualized
     avg_price = prices['Price'].mean()
-
+    volatility = prices['Price'].pct_change().std() * 100 * (252**0.5)
     return jsonify({
         "latest_price": round(latest_price, 2),
         "average_price": round(avg_price, 2),
         "annualized_volatility": round(volatility, 2),
         "total_events": len(load_events()),
-        "detected_change_points": 3
+        "detected_change_points": 2
     })
 
 # Serve React App
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_react(path):
-    if path != "" and os.path.exists(f"../frontend/build/{path}"):
-        return send_from_directory('../frontend/build', path)
+    if path != "" and os.path.exists(f"../frontend/dist/{path}"):
+        return send_from_directory('../frontend/dist', path)
     else:
-        return send_from_directory('../frontend/build', 'index.html')
+        return send_from_directory('../frontend/dist', 'index.html')
 
 
 if __name__ == '__main__':
