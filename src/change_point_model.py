@@ -98,7 +98,7 @@ def save_summary_to_csv(trace, change_date, output_dir="./reports"):
     
     csv_path = os.path.join(output_dir, "analysis_summary.csv")
     summary_df.to_csv(csv_path, index=False)
-    print(f"✅ Summary data saved to {csv_path}")
+    print(f" Summary data saved to {csv_path}")
 
 
 def main():
@@ -111,11 +111,11 @@ def main():
     if data_df is None:
         return
 
-    print(f"✅ Data loaded: {len(data_df)} records from {data_df['Date'].min().date()} to {data_df['Date'].max().date()}")
+    print(f" Data loaded: {len(data_df)} records from {data_df['Date'].min().date()} to {data_df['Date'].max().date()}")
 
     trace, change_date, tau_idx = run_change_point_model(data_df)
     
-    print("\n✅ Bayesian Analysis Complete.")
+    print("\n Bayesian Analysis Complete.")
     print(f"Most probable change point occurred at index: {tau_idx}")
     print(f"Corresponding date: {change_date.strftime('%Y-%m-%d')}")
     print("Check the 'reports/' folder for visualizations and 'analysis_summary.csv'.")
