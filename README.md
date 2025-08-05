@@ -1,4 +1,3 @@
-```
 # 🛢️ Brent Oil Price Change Point Analysis  
 *A 10 Academy - KAIM Week 10 Challenge Project*  
 **By: Addisu Taye | Birhan Energies – Data Science Division**
@@ -135,10 +134,6 @@ npm run dev
 
 ---
 
-
-
----
-
 ## 📦 Requirements
 
 ```txt
@@ -229,4 +224,3 @@ python generate_final_report.py
 
 > "The goal is not just to detect change — but to anticipate it."  
 > — *Birhan Energies Data Science Team*
-```
