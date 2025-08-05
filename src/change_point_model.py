@@ -1,30 +1,40 @@
-# src/change_point_model.py
-
-"""
-Task ID:         Task-2
-Created by:      Addisu Taye
-Date Created:    30-JUL-2025
-Purpose:         Perform Bayesian Change Point Analysis on Brent oil prices using PyMC.
-Key Features:    - Implements a single change point model with MCMC sampling
-                 - Estimates pre- and post-change means and uncertainty
-                 - Generates posterior diagnostics and visualizations
-"""
-
+# ==============================================================================
+# Setup and Data Loading
+# ==============================================================================
 import pandas as pd
 import pymc as pm
 import numpy as np
 import arviz as az
 import matplotlib.pyplot as plt
 import os
-# --- FIX: PyMC v5 uses PyTensor for its backend ---
 import pytensor.tensor as at
-# --- NEW: Import data loading function from the dedicated module ---
-from load_data import load_brent_prices
+#from google.colab import drive
 
+# Mount Google Drive to access data files
+#drive.mount('/content/drive')
 
-def run_change_point_model(df, output_dir="reports"):
+# Define the data loading function
+def load_brent_prices(data_path="./data/BrentOilPrices.csv"):
     """
-    Runs a Bayesian change point model on oil price data.
+    Loads and preprocesses Brent oil price data from a CSV file.
+    """
+    try:
+        df = pd.read_csv(data_path, parse_dates=['Date'])
+        df.columns = ['Date', 'Price']
+        df.sort_values(by='Date', inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        return df
+    except FileNotFoundError:
+        print(f"❌ Error: Data file not found at {data_path}. Please check the path.")
+        return None
+
+# ==============================================================================
+# Bayesian Change Point Analysis Functions
+# ==============================================================================
+
+def run_change_point_model(df, output_dir="./reports"):
+    """
+    Runs a Bayesian change point model on oil price data and returns the trace.
     """
     os.makedirs(output_dir, exist_ok=True)
     
@@ -37,14 +47,13 @@ def run_change_point_model(df, output_dir="reports"):
         mu_2 = pm.Normal('mu_2', mu=np.mean(price), sigma=10)
         sigma = pm.HalfNormal('sigma', sigma=10)
 
-        mu = at.switch(at.ge(tau, np.arange(n)), mu_1, mu_2)
+        mu = at.switch(at.ge(np.arange(n), tau), mu_2, mu_1)
         
         likelihood = pm.Normal('y', mu=mu, sigma=sigma, observed=price)
 
-        # MCMC Sampling
         trace = pm.sample(draws=2000, tune=1000, target_accept=0.95)
 
-    az.plot_trace(trace, var_names=['mu_1', 'mu_2', 'sigma', 'tau'])
+    az.plot_trace(trace, var_names=['mu_1', 'mu_2', 'sigma'])
     plt.savefig(f"{output_dir}/trace_plot.png")
     plt.close()
 
@@ -63,15 +72,43 @@ def run_change_point_model(df, output_dir="reports"):
     return trace, change_date, most_probable_tau
 
 
+def save_summary_to_csv(trace, change_date, output_dir="./reports"):
+    """
+    Saves a summary of the model results to a CSV file.
+    """
+    mu_1_summary = az.summary(trace, var_names=['mu_1'], hdi_prob=0.95)
+    mu_2_summary = az.summary(trace, var_names=['mu_2'], hdi_prob=0.95)
+
+    mu_1_mean = mu_1_summary['mean'].values[0]
+    mu_1_hdi_low = mu_1_summary['hdi_3%'].values[0]
+    mu_1_hdi_high = mu_1_summary['hdi_97%'].values[0]
+
+    mu_2_mean = mu_2_summary['mean'].values[0]
+    mu_2_hdi_low = mu_2_summary['hdi_3%'].values[0]
+    mu_2_hdi_high = mu_2_summary['hdi_97%'].values[0]
+
+    summary_data = {
+        "Metric": ["Pre-Change Mean", "Post-Change Mean", "Change Point Date"],
+        "Value": [mu_1_mean, mu_2_mean, change_date],
+        "HDI 3%": [mu_1_hdi_low, mu_2_hdi_low, np.nan],
+        "HDI 97%": [mu_1_hdi_high, mu_2_hdi_high, np.nan]
+    }
+    
+    summary_df = pd.DataFrame(summary_data)
+    
+    csv_path = os.path.join(output_dir, "analysis_summary.csv")
+    summary_df.to_csv(csv_path, index=False)
+    print(f"✅ Summary data saved to {csv_path}")
+
+
 def main():
     """Main execution function."""
     print("🔍 Starting Bayesian Change Point Analysis...")
 
-    try:
-        # --- NEW: Use the robust data loading function ---
-        data_df = load_brent_prices()
-    except FileNotFoundError as e:
-        print(f"❌ Error: {e}. Please ensure data files are in the correct location.")
+    data_path = "./data/BrentOilPrices.csv"
+    data_df = load_brent_prices(data_path)
+
+    if data_df is None:
         return
 
     print(f"✅ Data loaded: {len(data_df)} records from {data_df['Date'].min().date()} to {data_df['Date'].max().date()}")
@@ -81,8 +118,13 @@ def main():
     print("\n✅ Bayesian Analysis Complete.")
     print(f"Most probable change point occurred at index: {tau_idx}")
     print(f"Corresponding date: {change_date.strftime('%Y-%m-%d')}")
-    print("Check the 'reports/' folder for visualizations.")
+    print("Check the 'reports/' folder for visualizations and 'analysis_summary.csv'.")
+
+    save_summary_to_csv(trace, change_date)
 
 
+# ==============================================================================
+# Run the analysis
+# ==============================================================================
 if __name__ == "__main__":
     main()
